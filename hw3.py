@@ -89,12 +89,45 @@ class A5_1:
         # xor the ciphertext and key stream
         pass
 
-session_key = [0,1,0,0,  1,1,1,0,  0,0,1,0,  1,1,1,1,
-               0,1,0,0,  1,1,0,1,  0,1,1,1,  1,1,0,0,
-               0,0,0,1,  1,1,1,0,  1,0,1,1,  1,0,0,0,
-               1,0,0,0,  1,0,1,1,  0,0,1,1,  1,0,1,0]
 
-frame_counter = [    1,1, 1,0,1,0, 1,0,1,1,
-                 0,0,1,1, 1,1,0,0, 1,0,1,1]
+def main():
+    session_key = [0,1,0,0,  1,1,1,0,  0,0,1,0,  1,1,1,1,
+                   0,1,0,0,  1,1,0,1,  0,1,1,1,  1,1,0,0,
+                   0,0,0,1,  1,1,1,0,  1,0,1,1,  1,0,0,0,
+                   1,0,0,0,  1,0,1,1,  0,0,1,1,  1,0,1,0]
 
-kerker_A5_1 = A5_1(session_key, frame_counter, 228)
+    frame_counter = [    1,1, 1,0,1,0, 1,0,1,1,
+                     0,0,1,1, 1,1,0,0, 1,0,1,1]
+
+    kerker_A5_1 = A5_1(session_key, frame_counter, 228)
+
+if __name__ == '__main__':
+    main()
+
+
+"""
+
+Homework instuction
+
+For students using languages other than C/C++, please follow this guide:
+    1. Email TA, along with your preferred language, to request the permission to do so.
+    2. Make sure your program can be executed the same as our skeleton.
+
+        ./your_prog [<Session Key> <Frame Counter> <Input Filename> <Output Filename>]
+
+
+Sample Input & Output
+
+Sample 1.
+    1. Download the original hw3.cpp file
+    2. Run your program to encrypt hw3.cpp using following arguments
+    ./your_prog 0x123456789abcdef 0x12345 hw3.cpp hw3.cpp.enc2
+    3. The output hw3.cpp.enc2 should be identical to hw3.cpp.enc
+
+Sample 2.
+    1. Download encrypt.mp3
+    2. Run your program without any argument
+    ./your_prog
+    3. The output decrypt.mp3 is a song you can find here
+        https://archive.org/details/LastChristmas_614
+"""
