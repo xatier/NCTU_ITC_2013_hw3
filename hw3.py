@@ -1,6 +1,9 @@
 #!/usr/bin/env python3
 
+import sys
 import functools
+
+
 
 class LFSR:
     def __init__(self, length, clocking, tapped):
@@ -91,15 +94,73 @@ class A5_1:
 
 
 def main():
-    session_key = [0,1,0,0,  1,1,1,0,  0,0,1,0,  1,1,1,1,
-                   0,1,0,0,  1,1,0,1,  0,1,1,1,  1,1,0,0,
-                   0,0,0,1,  1,1,1,0,  1,0,1,1,  1,0,0,0,
-                   1,0,0,0,  1,0,1,1,  0,0,1,1,  1,0,1,0]
+    # default configuration
+    input_file    = "encrypt.mp3"
+    output_file   = "decrypt.mp3"
+    session_key   = 0x123456789ABCDEF0
+    frame_counter = 0x00123456
 
-    frame_counter = [    1,1, 1,0,1,0, 1,0,1,1,
-                     0,0,1,1, 1,1,0,0, 1,0,1,1]
+    session_key   = [ int(b) for b in bin(session_key)[2:] ]
+    frame_counter = [ int(b) for b in bin(frame_counter)[2:] ]
+
+    # session_key = [0,1,0,0,  1,1,1,0,  0,0,1,0,  1,1,1,1,
+    #                0,1,0,0,  1,1,0,1,  0,1,1,1,  1,1,0,0,
+    #                0,0,0,1,  1,1,1,0,  1,0,1,1,  1,0,0,0,
+    #                1,0,0,0,  1,0,1,1,  0,0,1,1,  1,0,1,0]
+
+    # frame_counter = [    1,1, 1,0,1,0, 1,0,1,1,
+    #                  0,0,1,1, 1,1,0,0, 1,0,1,1]
+
+
+    if len(sys.argv) == 5:
+        # use user's arguments
+        # session_key
+        try:
+            session_key = sys.argv[1]
+        except:
+            sys.stderr.write("Invalid Session Key input!")
+            sys.exit(1)
+
+        # frame_counter
+        try:
+            frame_counter = sys.argv[2]
+        except:
+            sys.stderr.write("Invalid Frame Counter input!")
+            sys.exit(1)
+
+        # input_file
+        try:
+            if len(sys.argv[3]) > 255:
+                sys.stderr.write("Input Filename too long!")
+                sys.exit(1)
+
+            input_file = sys.argv[3]
+
+        except:
+            sys.stderr.write("Invalid Input Filename!")
+            sys.exit(1)
+
+        # output_file
+        try:
+            if len(sys.argv[4]) > 255:
+                sys.stderr.write("Output Filename too long!")
+                sys.exit(1)
+
+            output_file = sys.argv[3]
+        except:
+
+            sys.stderr.write("Invalid Input Filename!")
+            sys.exit(1)
+
+    elif len(sys.argv) == 1:
+        # use default arguments
+
+    else:
+        printf("Usage:./main [<Session Key> <Frame Counter> <Input Filename> <Output Filename>]")
+        return -1
 
     kerker_A5_1 = A5_1(session_key, frame_counter, 228)
+
 
 if __name__ == '__main__':
     main()
