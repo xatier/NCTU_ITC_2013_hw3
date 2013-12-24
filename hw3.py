@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 import sys
+import os
 import functools
 
 
@@ -52,9 +53,6 @@ class A5_1:
             lfsr2.round_(0, fc_bit)
             lfsr3.round_(0, fc_bit)
 
-        # XXX: cause of the wrong part in video
-        lfsr3.reg = [0,0,0,0,  1,0,1,1,  0,0,0,1, 1,0,0,1,  1,0,1,0,  0,1,0]
-
         # step 4: irregular clocking for 100 times
         for i in range(100):
             maj_bit = (lfsr1.reg[lfsr1.clocking] +
@@ -67,6 +65,8 @@ class A5_1:
 
 
         # step 5: generate plaintext_len bit key stream
+        # 1Byte = 8bits
+        plaintext_len *= 8
         for i in range(plaintext_len):
             maj_bit = (lfsr1.reg[lfsr1.clocking] +
                        lfsr2.reg[lfsr2.clocking] +
@@ -75,55 +75,37 @@ class A5_1:
             self.key_stream.append(lfsr1.reg[-1] ^
                                    lfsr2.reg[-1] ^
                                    lfsr3.reg[-1])
+
             lfsr1.round_(1, maj_bit)
             lfsr2.round_(1, maj_bit)
             lfsr3.round_(1, maj_bit)
 
-        #lfsr1.print_()
-        #lfsr2.print_()
-        #lfsr3.print_()
-        #print(self.key_stream)
+    def encrypt(self, fin, fout):
+        # xor the plaintext and key stream byte by byte
+        for i in range(0, len(self.key_stream), 8):
+            l1 = self.key_stream[i:i+8]
+            l2 = map(int, bin(ord(fin.read(1)))[2:].zfill(8))
+            l3 = map(int.__xor__, l1, l2)
+            bn = functools.reduce(lambda x,y: x*2+y, l3)
+            fout.write(bytes([bn]))
 
-    def encrypt(self):
-        # xor the plaintext and key stream
-        pass
-
-    def decrypt(self):
-        # xor the ciphertext and key stream
-        pass
 
 
 def main():
-    # default configuration
-    input_file    = "encrypt.mp3"
-    output_file   = "decrypt.mp3"
-    session_key   = 0x123456789ABCDEF0
-    frame_counter = 0x00123456
-
-    session_key   = [ int(b) for b in bin(session_key)[2:] ]
-    frame_counter = [ int(b) for b in bin(frame_counter)[2:] ]
-
-    # session_key = [0,1,0,0,  1,1,1,0,  0,0,1,0,  1,1,1,1,
-    #                0,1,0,0,  1,1,0,1,  0,1,1,1,  1,1,0,0,
-    #                0,0,0,1,  1,1,1,0,  1,0,1,1,  1,0,0,0,
-    #                1,0,0,0,  1,0,1,1,  0,0,1,1,  1,0,1,0]
-
-    # frame_counter = [    1,1, 1,0,1,0, 1,0,1,1,
-    #                  0,0,1,1, 1,1,0,0, 1,0,1,1]
-
 
     if len(sys.argv) == 5:
         # use user's arguments
+
         # session_key
         try:
-            session_key = sys.argv[1]
+            session_key = int(sys.argv[1], 0)
         except:
             sys.stderr.write("Invalid Session Key input!")
             sys.exit(1)
 
         # frame_counter
         try:
-            frame_counter = sys.argv[2]
+            frame_counter = int(sys.argv[2], 0)
         except:
             sys.stderr.write("Invalid Frame Counter input!")
             sys.exit(1)
@@ -146,21 +128,54 @@ def main():
                 sys.stderr.write("Output Filename too long!")
                 sys.exit(1)
 
-            output_file = sys.argv[3]
+            output_file = sys.argv[4]
+
         except:
 
             sys.stderr.write("Invalid Input Filename!")
             sys.exit(1)
 
     elif len(sys.argv) == 1:
-        # use default arguments
+        # use default default configuration
+        input_file    = "encrypt.mp3"
+        output_file   = "decrypt.mp3"
+        session_key   = 0x123456789ABCDEF0
+        frame_counter = 0x00123456
+
 
     else:
         printf("Usage:./main [<Session Key> <Frame Counter> <Input Filename> <Output Filename>]")
         return -1
 
-    kerker_A5_1 = A5_1(session_key, frame_counter, 228)
 
+    try:
+        fin = open(input_file, "rb")
+    except:
+        sys.stderr.write("{}: No such file!".format(input_file))
+        sys.exit(1)
+
+    try:
+        fout = open(output_file, "wb")
+    except:
+        sys.stderr.write("{}: error while opening file to write!\n", output_file);
+        sys.exit(1)
+
+    # zfill and reverse the list
+    session_key   = reversed(list(map(int, bin(session_key)[2:].zfill(64))))
+    frame_counter = reversed(list(map(int, bin(frame_counter)[2:].zfill(22))))
+
+    input_file_len = os.stat(input_file).st_size
+
+    kerker_A5_1 = A5_1(session_key, frame_counter, input_file_len)
+
+    kerker_A5_1.encrypt(fin, fout)
+
+    try:
+        fin.close()
+        fout.close()
+    except:
+        sys.stderr.write("error on closing files!\n");
+        sys.exit(1)
 
 if __name__ == '__main__':
     main()
