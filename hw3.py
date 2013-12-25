@@ -33,61 +33,63 @@ class LFSR:
 
 
 class A5_1:
-    def __init__(self, session_key, frame_counter, plaintext_len):
-        self.key_stream = []
+    def __init__(self, session_key, frame_counter):
 
         # step 1: initialize the three registers
-        lfsr1 = LFSR(19, 8, [13, 16, 17, 18])
-        lfsr2 = LFSR(22, 10, [20, 21])
-        lfsr3 = LFSR(23, 10, [7, 20, 21, 22])
+        self.lfsr1 = LFSR(19, 8, [13, 16, 17, 18])
+        self.lfsr2 = LFSR(22, 10, [20, 21])
+        self.lfsr3 = LFSR(23, 10, [7, 20, 21, 22])
 
         # step 2: xor with session key
         for sk_bit in session_key:
-            lfsr1.round_(0, sk_bit)
-            lfsr2.round_(0, sk_bit)
-            lfsr3.round_(0, sk_bit)
+            self.lfsr1.round_(0, sk_bit)
+            self.lfsr2.round_(0, sk_bit)
+            self.lfsr3.round_(0, sk_bit)
 
         # step 3: xor with frame counter
         for fc_bit in frame_counter:
-            lfsr1.round_(0, fc_bit)
-            lfsr2.round_(0, fc_bit)
-            lfsr3.round_(0, fc_bit)
+            self.lfsr1.round_(0, fc_bit)
+            self.lfsr2.round_(0, fc_bit)
+            self.lfsr3.round_(0, fc_bit)
 
         # step 4: irregular clocking for 100 times
         for i in range(100):
-            maj_bit = (lfsr1.reg[lfsr1.clocking] +
-                       lfsr2.reg[lfsr2.clocking] +
-                       lfsr3.reg[lfsr3.clocking]) // 2
+            maj_bit = (self.lfsr1.reg[self.lfsr1.clocking] +
+                       self.lfsr2.reg[self.lfsr2.clocking] +
+                       self.lfsr3.reg[self.lfsr3.clocking]) // 2
 
-            lfsr1.round_(1, maj_bit)
-            lfsr2.round_(1, maj_bit)
-            lfsr3.round_(1, maj_bit)
+            self.lfsr1.round_(1, maj_bit)
+            self.lfsr2.round_(1, maj_bit)
+            self.lfsr3.round_(1, maj_bit)
 
 
-        # step 5: generate plaintext_len bit key stream
-        # 1Byte = 8bits
-        plaintext_len *= 8
-        for i in range(plaintext_len):
-            maj_bit = (lfsr1.reg[lfsr1.clocking] +
-                       lfsr2.reg[lfsr2.clocking] +
-                       lfsr3.reg[lfsr3.clocking]) // 2
-
-            self.key_stream.append(lfsr1.reg[-1] ^
-                                   lfsr2.reg[-1] ^
-                                   lfsr3.reg[-1])
-
-            lfsr1.round_(1, maj_bit)
-            lfsr2.round_(1, maj_bit)
-            lfsr3.round_(1, maj_bit)
-
-    def encrypt(self, fin, fout):
+    def encrypt(self, fin, fout, plaintext_len):
         # xor the plaintext and key stream byte by byte
-        for i in range(0, len(self.key_stream), 8):
-            l1 = self.key_stream[i:i+8]
+        for i in range(0, plaintext_len):
+            self.key_stream_byte = []
+
+            # step 5: generate plaintext_len bit key stream
+            for _ in range(8):
+                maj_bit = (self.lfsr1.reg[self.lfsr1.clocking] +
+                           self.lfsr2.reg[self.lfsr2.clocking] +
+                           self.lfsr3.reg[self.lfsr3.clocking]) >> 1
+
+                self.key_stream_byte.append(self.lfsr1.reg[-1] ^
+                                       self.lfsr2.reg[-1] ^
+                                       self.lfsr3.reg[-1])
+
+                self.lfsr1.round_(1, maj_bit)
+                self.lfsr2.round_(1, maj_bit)
+                self.lfsr3.round_(1, maj_bit)
+
+            l1 = self.key_stream_byte
             l2 = map(int, bin(ord(fin.read(1)))[2:].zfill(8))
             l3 = map(int.__xor__, l1, l2)
             bn = functools.reduce(lambda x,y: x*2+y, l3)
             fout.write(bytes([bn]))
+
+            #if i % 64 == 0:
+            #    print(i)
 
 
 
@@ -164,11 +166,12 @@ def main():
     session_key   = reversed(list(map(int, bin(session_key)[2:].zfill(64))))
     frame_counter = reversed(list(map(int, bin(frame_counter)[2:].zfill(22))))
 
+
+    kerker_A5_1 = A5_1(session_key, frame_counter)
+
     input_file_len = os.stat(input_file).st_size
 
-    kerker_A5_1 = A5_1(session_key, frame_counter, input_file_len)
-
-    kerker_A5_1.encrypt(fin, fout)
+    kerker_A5_1.encrypt(fin, fout, input_file_len)
 
     try:
         fin.close()
