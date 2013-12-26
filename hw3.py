@@ -86,7 +86,7 @@ class A5_1:
             l2 = map(int, bin(ord(fin.read(1)))[2:].zfill(8))
             l3 = map(int.__xor__, l1, l2)
             bn = functools.reduce(lambda x,y: x*2+y, l3)
-            fout.write(bytes([bn]))
+            fout.write(bytearray([bn]))
 
             #if i % 64 == 0:
             #    print(i)
