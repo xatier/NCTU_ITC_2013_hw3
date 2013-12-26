@@ -8,7 +8,7 @@ import functools
 
 class LFSR:
     def __init__(self, length, clocking, tapped):
-        self.reg = [0] * length
+        self.reg = bytearray(length)
         self.clocking = clocking
         self.tapped = list(tapped)
 
@@ -17,11 +17,11 @@ class LFSR:
 
     def round_(self, mode, bit=0):
         # irregular clocking: hold the register if clocking == major bit
-        if mode == 1 and bit != self.reg[self.clocking]:
+        if mode == 1 and (bit ^ self.reg[self.clocking]):
             return
 
         # magic!
-        feedback = functools.reduce(lambda x,y: x^y,
+        feedback = functools.reduce(lambda x, y: x^y,
                        [self.reg[i] for i in self.tapped])
 
         # ignore irregular clocking mode
@@ -29,7 +29,7 @@ class LFSR:
             feedback = feedback ^ bit
 
         # prefix the feedback bit and shift right for one bit
-        self.reg = [feedback] + self.reg[:-1]
+        self.reg = bytes([feedback]) + self.reg[:-1]
 
 
 class A5_1:
@@ -53,10 +53,10 @@ class A5_1:
             self.lfsr3.round_(0, fc_bit)
 
         # step 4: irregular clocking for 100 times
-        for i in range(100):
+        for _ in range(100):
             maj_bit = (self.lfsr1.reg[self.lfsr1.clocking] +
                        self.lfsr2.reg[self.lfsr2.clocking] +
-                       self.lfsr3.reg[self.lfsr3.clocking]) // 2
+                       self.lfsr3.reg[self.lfsr3.clocking]) >> 1
 
             self.lfsr1.round_(1, maj_bit)
             self.lfsr2.round_(1, maj_bit)
@@ -66,7 +66,7 @@ class A5_1:
     def encrypt(self, fin, fout, plaintext_len):
         # xor the plaintext and key stream byte by byte
         for i in range(0, plaintext_len):
-            self.key_stream_byte = []
+            self.key_stream_byte = 0
 
             # step 5: generate plaintext_len bit key stream
             for _ in range(8):
@@ -74,19 +74,16 @@ class A5_1:
                            self.lfsr2.reg[self.lfsr2.clocking] +
                            self.lfsr3.reg[self.lfsr3.clocking]) >> 1
 
-                self.key_stream_byte.append(self.lfsr1.reg[-1] ^
-                                       self.lfsr2.reg[-1] ^
-                                       self.lfsr3.reg[-1])
+                self.key_stream_byte =  (self.key_stream_byte << 1) + \
+                                        (self.lfsr1.reg[-1] ^
+                                         self.lfsr2.reg[-1] ^
+                                         self.lfsr3.reg[-1])
 
                 self.lfsr1.round_(1, maj_bit)
                 self.lfsr2.round_(1, maj_bit)
                 self.lfsr3.round_(1, maj_bit)
 
-            l1 = self.key_stream_byte
-            l2 = map(int, bin(ord(fin.read(1)))[2:].zfill(8))
-            l3 = map(int.__xor__, l1, l2)
-            bn = functools.reduce(lambda x,y: x*2+y, l3)
-            fout.write(bytes([bn]))
+            fout.write(bytes([ord(fin.read(1)) ^ self.key_stream_byte]))
 
             #if i % 64 == 0:
             #    print(i)
