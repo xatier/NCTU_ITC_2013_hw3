@@ -29,7 +29,7 @@ class LFSR:
             feedback = feedback ^ bit
 
         # prefix the feedback bit and shift right for one bit
-        self.reg = bytes([feedback]) + self.reg[:-1]
+        self.reg = bytearray([feedback]) + self.reg[:-1]
 
 
 class A5_1:
@@ -83,7 +83,7 @@ class A5_1:
                 self.lfsr2.round_(1, maj_bit)
                 self.lfsr3.round_(1, maj_bit)
 
-            fout.write(bytes([ord(fin.read(1)) ^ self.key_stream_byte]))
+            fout.write(bytearray([ord(fin.read(1)) ^ (self.key_stream_byte & 0b11111111)]))
 
             #if i % 64 == 0:
             #    print(i)
