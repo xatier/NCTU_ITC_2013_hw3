@@ -1,7 +1,8 @@
-#!/usr/bin/env python3
+#!/usr/bin/env pypy
 
 import sys
 import os
+import io
 import functools
 
 
@@ -151,13 +152,15 @@ def main():
 
 
     try:
-        fin = open(input_file, "rb")
+        fin = io.open(input_file, "rb")
+        finb = io.BufferedReader(fin)
     except:
         sys.stderr.write("{}: No such file!".format(input_file))
         sys.exit(1)
 
     try:
-        fout = open(output_file, "wb")
+        fout = io.open(output_file, "wb")
+        foutb = io.BufferedWriter(fout)
     except:
         sys.stderr.write("{}: error while opening file to write!\n", output_file);
         sys.exit(1)
@@ -171,9 +174,11 @@ def main():
 
     input_file_len = os.stat(input_file).st_size
 
-    kerker_A5_1.encrypt(fin, fout, input_file_len)
+    kerker_A5_1.encrypt(finb, foutb, input_file_len)
 
     try:
+        finb.close()
+        foutb.close()
         fin.close()
         fout.close()
     except:
